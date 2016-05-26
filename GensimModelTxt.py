@@ -5,12 +5,13 @@ import math
 import numpy
 import datetime
 import codecs
+import sys
 
 
 #print 'gensim'
 path = '/Users/dg513/work/eclipse-workspace/lucene-workspace/wordVectorLucene/data/'
 #path = '/export/projects/sarcasm/vector/data/gensim/'
-
+#path = '/scratch/dg513/work/sarcasm/vector/data/gensim/'
 
 targetList = []
 wordModelList = []
@@ -20,36 +21,29 @@ THRESHOLD = 0.85
 def loadModel ( type ):
     
     if type == 'cbow':
-        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.03222015.cbow.model.bin', binary=True)
+        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.04212015.cbow.model.bin', binary=True)
     if type == 'sg' :
-        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.04072015.sg.model.bin', binary=True)
+        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.04212015.sg.model.bin', binary=True)
     if type == 'bl' :
-    	model = word2vec.Word2Vec.load_word2vec_format(path + 'model/GoogleNews-vectors-negative300.bin', binary=True)
-
-def createTextFormatModel(configPath,dataList1,target,model, type):
+        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/GoogleNews-vectors-negative300.bin', binary=True)
+   
+        
+        
+    return model
+def createTextFormatModel(configPath,dataList1,target,model,type,writer):
     
  #  model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.04072015.sg.model.bin', binary=True)
   
     #first put -1.0 in all elements!
     rowLen = len(dataList1);
-    if type == 'cbow':
-        writer = codecs.open(configPath + '/' + 'tweet.all.05122015.cbow.model.bin.txt', 'w', 'utf-8')
-    if type == 'sg':
-        writer = codecs.open(configPath + '/' + 'tweet.all.05122015.sg.model.bin.txt', 'w', 'utf-8')
-    if type == 'bl':
-        writer = codecs.open(configPath + '/' + 'tweet.all.05122015.googlenews.model.bin.txt', 'w', 'utf-8')
-   
-   
-    
     for index1 in range(0,rowLen):
         label1 = dataList1[index1][0]
         idMessage1 = dataList1[index1][1]
         id1 = idMessage1.split('_')[0]
         message1=idMessage1.split('_')[1]
         messageWordList1 = convertIntoCountMap(message1.split())
-        createTextFormat(messageWordList1,target,writer)
+        createTextFormat(messageWordList1,model,target,writer)
     
-    writer.close()
 
 def convertIntoCountMap(words):    
     
@@ -67,7 +61,7 @@ def convertIntoCountMap(words):
     
     return wordPairList
   
-def createTextFormat(gwordList,target,writer):
+def createTextFormat(gwordList,model,target,writer):
     for gwordElement in gwordList:
         gword = gwordElement[0]
         if gword in wordModelList:
@@ -77,10 +71,12 @@ def createTextFormat(gwordList,target,writer):
         except:
             continue
         wordModelList.append(gword)
-        str = gword + '\t' + str(gmodel)
-        writer.write(gword + '\t' + str(gmodel))
+        model_array = numpy.array(gmodel)
+        modelStr = ' '.join([str(a) for a in model_array])
+        writer.write(gword + '\t' + modelStr)
         writer.write('\n')
-
+   
+#def convertNumpy(gmodel):
 
 
 def loadTargetNames(path,file):
@@ -112,7 +108,7 @@ def getDataList(path, dataList, target,dataType,exprType):
     reader.close()
     return dataList
     
-def main():
+def main(args):
    
     sarcTrainingInputPath = './data/input/sarcasm_training/'
     randomTrainingInputPath  = './data/input/random_training/'
@@ -123,10 +119,23 @@ def main():
     configPath = './data/config/'
     targets = 'topnames.txt'
     loadTargetNames(configPath,targets)
-    loadModel('cbow')
+    type = args[0] 
     
+    model = loadModel(type)
+    
+    if type == 'cbow':
+        writer = codecs.open(configPath + '/' + 'tweet.all.03222015.cbow.model.bin.txt', 'w', 'utf-8')
+    if type == 'sg':
+        writer = codecs.open(configPath + '/' + 'tweet.all.04072015.sg.model.bin.txt', 'w', 'utf-8')
+    if type == 'bl':
+        writer = codecs.open(configPath + '/' + 'GoogleNews-vectors-negative300.bin.txt', 'w', 'utf-8')
+        
+  
+    short = ['always','mature']
     for target in targetList:
     
+   #     if target not in short:
+    #        continue
         print '%s' % (target) + ' is loaded '
          #now load the sarcasm traing files
         trainingSarcList = []
@@ -136,11 +145,6 @@ def main():
         trainingNonSarcList = []
         trainingNonSarcList = getDataList(randomTrainingInputPath,trainingNonSarcList,target,'NON_SARCASM','TRAIN')
         print 'non sarcasm training data is loaded'
-        
-        trainingNonSarcList = []
-        trainingNonSarcList = getDataList(randomTrainingInputPath,trainingNonSarcList,target,'NON_SARCASM','TRAIN')
-        print 'non sarcasm training data is loaded'
-      
        
         #now send all data for training
         #add all data
@@ -150,10 +154,10 @@ def main():
         st = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print 'before creating text format model: ' + st
         
-        createTextFormatModel(configPath,trainingSarcList,target)
-        print 'sarcasm/non sarcasm text format is ready'
+        createTextFormatModel(configPath,trainingSarcList,target,model,type,writer)
+        print 'sarcasm/non sarcasm text format (training) is ready'
         
-        st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        st = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print 'after text format (training): ' + st
         
         
@@ -168,15 +172,17 @@ def main():
         for element in testNonSarcList:
             testSarcList.append(element)
         
-        st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        st = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print 'before creating text format model: ' + st
        
         
-        createTextFormatModel(configPath,testSarcList,target)
+        createTextFormatModel(configPath,testSarcList,target,model,type,writer)
         print 'sarcasm/non sarcasm test kernel matrix is ready'
-        st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        st = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print 'after text format  (testing): ' + st
-        
+    
+    writer.close()
 
-main()
+if __name__ == "__main__":
+   main(sys.argv[1:])
    

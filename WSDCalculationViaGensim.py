@@ -18,8 +18,8 @@ import datetime
 
 #print 'gensim'
 #path = '/Users/dg513/work/eclipse-workspace/lucene-workspace/wordVectorLucene/data/'
-path = '/scratch/dg513/work/sarcasm/vector/data/gensim/'
-path ='/export/projects/sarcasm/vector/'
+path = '/export/projects/sarcasm/vector/data/gensim/'
+
 targetList = []
 contextContextSimMap = {}
 glossGlossMap = {}
@@ -42,6 +42,21 @@ def createTokenizedList():
     return sentences
 
 
+def createWordVector():
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    
+ #   sentences = createTokenizedList()
+    
+# load up unzipped corpus from http://mattmahoney.net/dc/text8.zip
+    sentences = word2vec.Text8Corpus(path + 'input/tweet.all.03222015.tokens.lemma.emoji.wmf')
+# train the skip-gram model; default window=5
+    model = word2vec.Word2Vec(sentences, size=300,min_count=5,sg=0)
+ 
+# pickle the entire model to disk, so we can load&resume training later
+    model.save(path + 'model/tweet.all.03222015.cbow.model')
+# store the learned weights, in a format the original C tool understands
+    model.save_word2vec_format(path + 'model/tweet.all.03222015.cbow.model.bin', binary=True)
+    
 def convertIntoCountMap(words,target):    
     
     wordMap = {}
@@ -62,12 +77,48 @@ def convertIntoCountMap(words,target):
     
     return wordPairList
 
+def computeNormGlossSimViaWord2Vec(glosses,target,type,glossNonSarcScoreMap,contextWords):
+
+    contextWordsList = convertIntoCountMap(contextWords,target)
+  #  model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.03222015.cbow.model.bin', binary=True)
+    model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.04072015.sg.model.bin', binary=True)
+
+    index = 0 
+    
+    contextSim = contextContextSimMap.get(type+'_'+target)
+    if contextSim is None:
+       # contextSim = getSimilarity(contextWordsList,contextWordsList,model) #similarity between all elements - keep a threshold
+       # contextSim = getTopSimilarity(contextWords,contextWords,model)
+       # contextSim = getGreedyGreedyTopSimilarity(contextWordsList,contextWordsList,model)
+        contextContextSimMap[type+'_'+target] = contextSim
+
+    for glossId in glosses.keys():
+        gloss = glosses.get(glossId)
+        glossWords = gloss.split()
+        glossWordsList = convertIntoCountMap(glossWords,target)
+
+       # similarity = getSimilarity(glossWordsList,contextWordsList,model)
+        #similarity = getTopSimilarity(glossWords,contextWords,model)
+        similarity = getGreedyGreedyTopSimilarity(glossWordsList,contextWordsList,model)
+        glossSim = glossGlossMap.get(glossId)
+        if glossSim is None:
+          #  glossSim = getSimilarity(glossWordsList,glossWordsList,model)
+            #glossSim = getTopSimilarity(glossWords,glossWords,model)
+            glossSim = getGreedyGreedyTopSimilarity(glossWordsList,glossWordsList,model)
+            glossGlossMap[glossId] = glossSim
+            
+        similarity_norm = similarity/ math.sqrt(glossSim * glossSim + contextSim * contextSim)
+        glossNonSarcScoreMap[glossId] = similarity_norm
+        index = index + 1
+
+    return glossNonSarcScoreMap
+
 def loadGensimModel(type):
     if type == 'cbow':
-        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.05032015.cbow.model.bin', binary=True)
+        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.03222015.cbow.model.bin', binary=True)
     if type == 'sg':
-        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.05032015.sg.model.bin', binary=True)
-    
+        model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.04072015.sg.model.bin', binary=True)
+
     return model
 
 def computeGlossSimViaWord2Vec(model,glosses,target,type,glossNonSarcScoreMap,contextWords):
@@ -81,12 +132,12 @@ def computeGlossSimViaWord2Vec(model,glosses,target,type,glossNonSarcScoreMap,co
         glossWords = gloss.split()
         glossWordsList = convertIntoCountMap(glossWords,target)
 
-     #   similarity = getSimilarity(glossWordsList,contextWordsList,model)
-     #   similarity = getDirectSimilarity(glossWordsList,contextWordsList,model)
+       # similarity = getSimilarity(glossWordsList,contextWordsList,model)
+        similarity = getDirectSimilarity(glossWordsList,contextWordsList,model)
 
         
         #similarity = getTopSimilarity(glossWords,contextWords,model)
-        similarity = getGreedyGreedyTopSimilarity(glossWordsList,contextWordsList,model)
+     #   similarity = getGreedyGreedyTopSimilarity(glossWordsList,contextWordsList,model)
         glossNonSarcScoreMap[glossId] = similarity
        # num = num + 1
      #   if num %10 == 0:
@@ -346,6 +397,16 @@ def getCosineScore(gword,gmodel,cword,cmodel):
         
     return gcscore
 
+def loadWordVector():
+
+    model = word2vec.Word2Vec.load_word2vec_format(path + 'model/tweet.all.03222015.cbow.model.bin', binary=True)
+   # print model['sarcasm']
+  #  print model.most_similar(positive=['dentist','love'])
+    positive = []
+    negative = []
+    print model.most_similar('morning',positive,100)
+    print model['morning']#.most_similar('morning',positive,100)
+
 def loadUnigrams(path,file):
     
     unigramMap = {}
@@ -369,20 +430,14 @@ def loadTargetNames(path,file):
     targetList = [line.strip() for line in lines]
 
 def getGlossList(glossPath, glossSarcMap, target,type):
-    
-    if type == 'NON_SARCASM':
-        file = 'tweet.'+type+'.'+target+'.TEST'
-        colmn = 1
-    else:
-		file = 'tweet.'+type+'.'+target+'.glossdefn.wmf.txt'
-		colmn = 2
-    
+
+    file = 'tweet.'+type+'.'+target+'.glossdefn.wmf.txt'
     reader = open(glossPath + '/' + file )
     lines = reader.readlines()
     for line in lines:
         features = line.strip().split('\t')
         id = features[0]
-        gloss = features[colmn] #note - this need to be changed because currently gloss defn and original tweets are together
+        gloss = features[2] #note - this need to be changed because currently gloss defn and original tweets are together
         glossSarcMap[id] =gloss
     
     reader.close()
@@ -431,35 +486,37 @@ def main():
    
    # createWordVector()
   #  loadWordVector()
-    scratchPath = '/scratch/dg513/work/sarcasm/vector/'
-    scratchPath = '/export/projects/sarcasm/vector/'
-    
     unigramPaths = []
-    
-    unigramPaths.append(scratchPath+'/data/input/sarcasm_tokens/')
-    unigramPaths.append(scratchPath+'/data/input/positive_tokens/')
+    unigramPaths.append('./data/input/sarcasm_tokens/')
+    unigramPaths.append('./data/input/random_tokens/')
     
     simScorePaths = []
-    simScorePaths.append(scratchPath+'/data/output/WSDFolder/sarcasm_testing_wsd_scores_cbow_gensim_align/')
-    simScorePaths.append(scratchPath+'/data/output/WSDFolder/positive_testing_wsd_scores_cbow_gensim_align/')
+    simScorePaths.append('./data/output/WSDFolder/sarcasm_testing_wsd_scores_sg_gensim/')
+    simScorePaths.append('./data/output/WSDFolder/random_testing_wsd_scores_sg_gensim/')
     
     
     unigramsFiles = []
     unigramsFiles.append('tweet.sarcasm.03182015.training.lemma.emoji.unigrams')
-    #unigramsFiles.append('tweet.rnd.031812015.training.lemma.emoji.unigrams')
-    unigramsFiles.append('tweet.positive.05032015.emma.emoji.unigrams')
+    unigramsFiles.append('tweet.rnd.031812015.training.lemma.emoji.unigrams')
 
-    sarcMIPath = scratchPath+'/data/output/sarcasm_mi_10/'
-    randomMIPath = scratchPath+'/data/output/positive_mi_10/'
-    sarcGlossOPPath =  scratchPath+'/data/output/WSDFolder/sarcasm_testing_wsd_weiwei/'
-    randomGlossOPPath =  scratchPath+'/data/output/WSDFolder/positive_testing_wsd_weiwei/'
-    configPath =  scratchPath+'/data/config/'
+    sarcMIPath = './data/output/sarcasm_mi_10/'
+    randomMIPath = './data/output/random_mi_10/'
+    sarcGlossOPPath = './data/output/WSDFolder/sarcasm_testing_wsd_weiwei/'
+    randomGlossOPPath = './data/output/WSDFolder/random_testing_wsd_weiwei/'
+    configPath = './data/config/'
     targets = 'topnames.txt'
 
  
     loadTargetNames(configPath,targets)
     model = loadGensimModel('sg')
 
+  #  sarcUnigrams = loadUnigrams(unigramPaths[0],unigramsFiles[0])
+  #  nonSarcUnigrams =  loadUnigrams(unigramPaths[1],unigramsFiles[1])
+    
+    shortlist = ['lovely', 'mature', 'nice', 'perfect', 'proud', 'really', 'right', 'shocked', 'super', 'sweet', 'wonder', 'wonderful', 'yeah']
+    shortlist = ['yeah']
+    shortlist = ['really', 'right', 'shocked', 'super', 'sweet', 'wonder', 'wonderful', 'yeah']
+    
     for target in targetList:
         #load the pmi for sarcasm as well as random
       #  if target == 'always':
@@ -504,9 +561,6 @@ def main():
       #print the output with sarc test file
       printGlossSimSarcTestFiles(simScorePaths[1],target,'NON_SARCASM',glossSarcScoreMap,glossNonSarcScoreMap) 
       print 'sarcasm and non sarcasm gloss/similarity is computed for non sarcastic test'
-      
-      st = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-      print 'target finished: ' +target + ' '+ st
-      
+
 main()
    

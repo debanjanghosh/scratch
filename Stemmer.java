@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.rutgers.util ;
+package com.research.course.debate.util ;
 
 /**
  * @author Qiang Lu

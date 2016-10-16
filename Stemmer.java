@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.research.course.debate.util ;
+package com.deft.sarcasm.util ;
 
 /**
  * @author Qiang Lu

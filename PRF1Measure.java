@@ -1,4 +1,4 @@
-package com.wsd.util;
+package com.deft.sarcasm.postprocess;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -42,8 +43,6 @@ public class PRF1Measure {
 	private String featurePath;
 
 	private String featureFile;
-	
-	private double filePresent ;
 
 	private static final String configPath =  "./data/config" ;
 
@@ -59,142 +58,6 @@ public class PRF1Measure {
 	
 	private List<String> testingWeeks ;
 
-	private List<String> targets;
-	
-	private class ScoreClass
-	{
-	
-		public double getAvgP() {
-			return avgP;
-		}
-
-		public void setAvgP(double avgP) {
-			this.avgP = this.avgP  + avgP;
-		}
-
-		public double getAvgR() {
-			return avgR;
-		}
-
-		public void setAvgR(double avgR) {
-			this.avgR = this.avgR + avgR;
-		}
-
-		public double getAvgF1() {
-			return avgF1;
-		}
-
-		public void setAvgF1(double avgF1) 
-		{
-			this.avgF1 = this.avgF1 + avgF1;
-		}
-
-		public double getMaxP() {
-			return maxP;
-		}
-
-		public void setMaxP(double maxP) 
-		{
-			this.maxP = maxP;
-			if (maxP > this.maxP)
-			{
-				this.maxP = maxP;
-			}
-
-		}
-
-		public double getMaxR() {
-			return maxR;
-		}
-
-		public void setMaxR(double maxR) 
-		{
-			if (maxR > this.maxR)
-			{
-				this.maxR = maxR;
-			}
-		}
-
-		public double getMaxF1() {
-			return maxF1;
-		}
-
-		public void setMaxF1(double maxF1) 
-		{
-						
-			if (maxF1 > this.maxF1)
-			{
-				this.maxF1 = maxF1;
-			}
-		}
-
-		public double getMinP() 
-		{
-			return minP;
-		}
-
-		public void setMinP(double minP) 
-		{
-			if (minP < this.minP)
-			{
-				this.minP = minP;
-			}
-		}
-
-		public double getMinR() {
-			return minR;
-		}
-
-		public void setMinR(double minR) 
-		{
-			if (minR < this.minR)
-			{
-				this.minR = minR;
-			}
-		}
-
-		public double getMinF1() 
-		{
-			return minF1;
-		}
-
-		public void setMinF1(double minF1) 
-		{
-			if (minF1 < this.minF1)
-			{
-				this.minF1 = minF1;
-			}
-		}
-
-		private double avgP = 0.0;
-		private double avgR = 0.0;
-		private double avgF1 = 0.0;
-		
-		private double maxP = Double.MIN_VALUE ;
-		private double maxR = Double.MIN_VALUE;
-		private double maxF1 = Double.MIN_VALUE;
-		
-		private double minP = Double.MAX_VALUE;
-		private double minR = Double.MAX_VALUE;;
-		private double minF1 = Double.MAX_VALUE;
-		
-		public void ScoreClass()
-		{
-			
-		}
-		
-	}
-	
-	
-	private Map<Double,ScoreClass> scoreForCategory ;
-	
-	public PRF1Measure()
-	{
-		scoreForCategory = new HashMap<Double,ScoreClass>() ;
-
-	}
-	
-	
 	public void setPrecRecallObject(
 			HashMap<Double, List<RefTargetPair>> eachCategoryMap) {
 		// TODO Auto-generated method stub
@@ -205,30 +68,15 @@ public class PRF1Measure {
 		
 		
 	}
-	
-	
 
 	public List<String> calculatePRF1() 
 	{
 		// TODO Auto-generated method stub
-		
-		ScoreClass scoreObj = null ;
-		
 		Set<Double> categories = eachCategoryMap.keySet();
-		
-		if ( categories.size() !=0)
-		{
-			filePresent++ ;
-			
-		}
 		
 		List<String> ops = new ArrayList<String>() ;
 		
 		DecimalFormat dec = new DecimalFormat("###.##") ;
-		
-		double totalTruePositives = 0.0 ; 
-		double totalTrueNegatives = 0.0 ; 
-
 		
 		
 		for (Double category : categories) 
@@ -242,63 +90,28 @@ public class PRF1Measure {
 				updateSelected(refPairList, category);
 			}
 
-			totalTruePositives = totalTruePositives + truePositive ;
-		//	totalTrueNegatives = totalTrueNegatives + 
-			
-		//	String out = "category:" + " " + convert(category) + " " + "precision:" + " " + dec.format(precision()) + " " + "recall:"
-		//			+ " " + dec.format(recall()) + " " +"FMeasure:" + " " + dec.format(FMeasure());
-			double precision = precision() ;
-			double recall = recall() ;
-			double FMeasure = FMeasure() ;
-			
-			scoreObj = scoreForCategory.get(category);
-			if ( null == scoreObj)
-			{
-				scoreObj = new ScoreClass() ;
-			}
-			scoreObj.setAvgF1(FMeasure);
-			scoreObj.setAvgP(precision);
-			scoreObj.setAvgR(recall);
-			
-			scoreObj.setMinF1(FMeasure);
-			scoreObj.setMinR(recall);
-			scoreObj.setMinP(precision);
-			
-			scoreObj.setMaxF1(FMeasure);
-			scoreObj.setMaxR(recall);
-			scoreObj.setMaxP(precision);
-			
-			scoreForCategory.put(category, scoreObj);
-			
-			
-			String out = convert(category) + "\t" + dec.format(precision) + "\t" 
-						+ dec.format(recall) + "\t" + dec.format(FMeasure);
+			String out = "category:" + "\t" + category + "\t" + "precision:" + "\t" + dec.format(precision()) + "\t" + "recall:"
+					+ "\t" + dec.format(recall()) + "\t" +"FMeasure:" + "\t" + dec.format(FMeasure());
 		
-			
 			ops.add(out);
 			selected = 0 ;
 		}
 		
-		
-		
 		//macro level - 
-		
-
 
 		return ops ;
 	}
 	
-	public List<String> calculateSeparatePRF1() 
+	public List<String> calculatePRF1(String targetName) 
 	{
 		// TODO Auto-generated method stub
 		Set<Double> categories = eachCategoryMap.keySet();
+		
 		List<String> ops = new ArrayList<String>() ;
 		
 		DecimalFormat dec = new DecimalFormat("###.##") ;
 		
-		double totalTruePositives = 0.0 ; 
-		double totalTrueNegatives = 0.0 ; 
-
+		
 		for (Double category : categories) 
 		{
 			@SuppressWarnings("rawtypes")
@@ -310,67 +123,35 @@ public class PRF1Measure {
 				updateSelected(refPairList, category);
 			}
 
-			totalTruePositives = totalTruePositives + truePositive ;
-		//	totalTrueNegatives = totalTrueNegatives + 
-			
-		//	String out = "category:" + " " + convert(category) + " " + "precision:" + " " + dec.format(precision()) + " " + "recall:"
+		//	String out = "category:" + " " + category + " " + "precision:" + " " + dec.format(precision()) + " " + "recall:"
 		//			+ " " + dec.format(recall()) + " " +"FMeasure:" + " " + dec.format(FMeasure());
-			double precision = precision() ;
-			double recall = recall() ;
-			double FMeasure = FMeasure() ;
-			
-		//	String out = convert(category) + "\t" + dec.format(precision) + "\t" 
-		//				+ dec.format(recall) + "\t" + dec.format(FMeasure);
-			
-			String out = (category) + "\t" + dec.format(precision) + "\t" 
-					+ dec.format(recall) + "\t" + dec.format(FMeasure);
-	
-			
+		
+			String out = targetName + "\t" + convert(String.valueOf(category)) + "\t"  + dec.format(precision()) + 
+					"\t" +  dec.format(recall()) + "\t" + dec.format(FMeasure());
+		
 			
 			ops.add(out);
 			selected = 0 ;
 		}
-			return ops ;
-	}
-	
-	private void printCumulative()
-	{
-		DecimalFormat dec = new DecimalFormat("###.##") ;
 		
-		for (Double category : scoreForCategory.keySet()) 
-		{
-			ScoreClass scoreObj = scoreForCategory.get(category);
-			
-			double avgP = scoreObj.getAvgP()/(double)filePresent;
-			double avgR = scoreObj.getAvgR()/(double)filePresent;
-			double avgF1 =  scoreObj.getAvgF1()/(double)filePresent ;
-			
-	//		System.out.println(category + "\t" + avgP + "\t" + avgR + "\t" + avgF1) ;
-	//		System.out.println(category + "\t" +scoreObj.getMinP() + "\t" + scoreObj.getMinR() + "\t" + scoreObj.getMinF1()) ;
-	//		System.out.println(category + "\t" +scoreObj.getMaxP() + "\t" + scoreObj.getMaxR() + "\t" + scoreObj.getMaxF1()) ;
+		//macro level - 
 
-			System.out.println(category + "\t" + dec.format(avgP) + "(+" + dec.format(scoreObj.getMaxP() -  avgP) + "/-" + dec.format(avgP - scoreObj.getMinP() )+ ")"
-				 + "\t" +	 dec.format(avgR) + "(+" + dec.format( scoreObj.getMaxR()  - avgR)  + "/-" + dec.format(avgR - scoreObj.getMinR() )+ ")"
-					 + "\t" + dec.format(avgF1) + "(+" + dec.format (scoreObj.getMaxF1() - avgF1)  + "/-" + dec.format(avgF1 - scoreObj.getMinF1() )+ ")" ) ;
-		}
-		
+		return ops ;
 	}
 
-	private String convert(Double category) 
+	private String convert(String category)
 	{
-		// TODO Auto-generated method stub
-		if ( category.doubleValue() == 2.0 || category.doubleValue() == 0.0)
+		if ( category.equalsIgnoreCase("0.0"))
 		{
-			return "NON_SARCASM" ; 
+			return "NON_SARCASM" ;
 		}
-		else if ( category.doubleValue() == 1.0)
+		if ( category.equalsIgnoreCase("1.0"))
 		{
 			return "SARCASM" ;
 		}
-		
-		return null;
+		return null ;
 	}
-
+	
 	public void updateSelected(List<RefTargetPair> refPredList, double category) {
 		for (RefTargetPair pair : refPredList) 
 		{
@@ -382,8 +163,7 @@ public class PRF1Measure {
 		}
 	}
 
-	public void updateScores(List<RefTargetPair> refPredList, Double category) 
-	{
+	public void updateScores(List<RefTargetPair> refPredList, Double category) {
 
 		truePositive = countTruePositives(refPredList);
 		target = refPredList.size();
@@ -444,7 +224,7 @@ public class PRF1Measure {
 		return truePositives;
 	}
 	
-	public void loadMultipleOutputFiles ( ) throws IOException
+	public void loadWeeklyMultipleOutputFiles ( ) throws IOException
 	{
 		//we are loading multiple output files and features files here
 		System.out.println("OUTPUT PATH: " + outputPath);
@@ -467,9 +247,11 @@ public class PRF1Measure {
 			}
 			
 			String fileName = f.getName() ;
-			String trainFile = fileName.substring(5,fileName.indexOf("test") );
-			String test = fileName.substring(fileName.indexOf("test")+4,fileName.indexOf(".")) ;
-			String testFile = "test_week_" + test + ".dat.binary.svm.TESTING.txt" ;
+//old =			String trainFile = fileName.substring(5,fileName.indexOf("test") );
+			String trainFile = fileName.split("\\.")[0];
+
+			String test = fileName.split("\\.")[1] ;
+			String testFile = test + ".all.filtered.02012016.selected.binary.svm.TESTING.txt" ;
 			
 		//	String opFile = test + ".op" ;
 			//check the training testing weeks
@@ -484,8 +266,8 @@ public class PRF1Measure {
 			}
 			
 			
-			System.out.println("TEST FILE: " + testFile) ;
-			System.out.println("OUTPUT FILE FROM SVM: " + fileName) ;
+	//		System.out.println("TEST FILE: " + testFile) ;
+	//		System.out.println("OUTPUT FILE FROM SVM: " + fileName) ;
 			
 
 			reader1 = new BufferedReader ( new FileReader ( featurePath + "/" + testFile)) ;
@@ -526,7 +308,7 @@ public class PRF1Measure {
 			}
 			
 			
-			System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
+		//	System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
 		
 			reader2.close();
 			reader1.close();
@@ -550,79 +332,34 @@ public class PRF1Measure {
 		
 	}
 	
-	public void loadTargets () throws IOException
-	{
-		
-		String path = "./data/config" ;
-		String file = "topnames.txt" ;
-		targets = Files.readAllLines(Paths.get(path + "/" + file),
-				StandardCharsets.UTF_8);
-
-		System.out.println("all targets are loaded ") ;
-	}
 	
-	
-	public void loadFiles ( ) throws IOException
+	public void loadWSDFiles (String targetName ) throws IOException
 	{
 		// get the property value and print it out
-		featurePath = "./data/output/prf1_outputs" ;
-		modelPath = featurePath ;
 		
-		File file = new File(modelPath) ;
-		File[] files = file.listFiles() ;
-		
-		System.out.println("Target" + "\t" + "Category" + "\t" + "Precision" + "\t"
-		+ "Recall" + "\t" + "F1");
-		
-		for (String target : targets )
 		{
+		//	modelPath = "./lib/" ;
+			modelPath = "./data/twitter_corpus/models/samelm2/" ;
+			featureFile = "tweet."+targetName+".target.TEST.binary.svm.TESTING.txt";
 			
-	//		if(!target.equalsIgnoreCase("always"))
-	//		{
-	//			continue ;
-	//		}
+			outputFile = targetName + ".op" ;
 			
-			if (!(target.equals("good") || target.equals("brilliant") ||
-					target.equals("love") || target.equals("cute")))
-			{
-		//		continue ;
-			}
+			String testFile = outputPath + "/" + featureFile ;
+			String opFile = modelPath + "/" + outputFile ;
 			
-			 featureFile = "tweet."  + target + ".weiwei.svm.feature" ;
-			 outputFile =  "tweet."   +target + ".weiwei.svm.op" ;
-		
-	//		 featureFile = "tweet."  + target + ".svm.feature" ;
-	//		 outputFile =  "tweet."   +target + ".svm.op" ;
-			 
-			 featureFile = "tweet."  + target + ".gensim.svm.feature" ;
-			 outputFile =  "tweet."   +target + ".gensim.svm.op" ;
+//			System.out.println("TEST FILE: " + testFile) ;
+//			System.out.println("OUTPUT FILE FROM SVM: " + opFile) ;
 
-			 
-			 File f = new File (featurePath + "/" + featureFile) ;
-				if (! f.exists())
-				{
-					continue ;
-				}
-				
+			BufferedReader reader1 = new BufferedReader ( new FileReader ( testFile)) ;
+			BufferedReader reader2 = new BufferedReader ( new FileReader ( opFile)) ;
 		
-			 
-			 String testFile = featurePath + "/" + featureFile ;
-			 String opFile = modelPath + "/" + outputFile ;
-		
-	//		 System.out.println("TEST FILE: " + testFile) ;
-	//		 System.out.println("OUTPUT FILE FROM SVM: " + opFile) ;
-	//		 System.out.println(target+":");
+			List<RefTargetPair> refTargetPairList = null ;
+			eachCategoryMap = new HashMap<Double,List<RefTargetPair>>() ;
+			RefTargetPair pair = null ;
 	
-			 BufferedReader reader1 = new BufferedReader ( new FileReader ( testFile)) ;
-			 BufferedReader reader2 = new BufferedReader ( new FileReader ( opFile)) ;
-			 
-			 List<RefTargetPair> refTargetPairList = null ;
-			 eachCategoryMap = new HashMap<Double,List<RefTargetPair>>() ;
-			 RefTargetPair pair = null ;
-			 
-			 int lineNum = 0 ;
-		
-			 while (true )
+			int lineNum = 0 ;
+				
+			while (true )
 			{
 				String line1 = reader1.readLine();
 				String line2 = reader2.readLine();
@@ -632,19 +369,8 @@ public class PRF1Measure {
 					break ;
 				}
 				
-				String features1[] = line1.split("\t") ;
-				String snum1 = features1[0] ;
-				double reference = Double.valueOf(features1[1]).doubleValue() ;
-				
-				String features2[] = line2.split("\t") ;
-				String snum2 = features2[0] ;
-				double predict = Double.valueOf(features2[1]).doubleValue() ;
-				
-				if ( !snum1.equalsIgnoreCase(snum2))
-				{
-					System.out.println("snum are not matching - check ") ;
-					continue ;
-				}
+				double reference = Double.valueOf(line1.split("\\s")[0].trim()).doubleValue() ;
+				double target = Double.valueOf(line2.trim()).doubleValue();
 				
 				//for p/r/f1
 				refTargetPairList = eachCategoryMap.get(reference);
@@ -652,119 +378,136 @@ public class PRF1Measure {
 				{
 					refTargetPairList = new ArrayList<RefTargetPair>();
 				}
-		
-				pair = new RefTargetPair(reference,predict);
+			
+				pair = new RefTargetPair(reference,target);
 				refTargetPairList.add(pair);
 				eachCategoryMap.put((double)reference, refTargetPairList);
 		
 				lineNum++ ;
+				
 			}
-			 
-	//		 System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
-			 reader2.close();
-			 reader1.close();
-			 
-			 //now calculate
-			List<String> ops = calculatePRF1();
-			for ( String op : ops )
-			{
-				if ( op.contains("category: 0.0"))
-				{
-					continue ;
-				}
+			
+	//		System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
 
-				System.out.println(target + "\t" +lineNum + "\t" + op);
-				eachCategoryMap.clear();
-			} 
+			reader2.close();
+			reader1.close();
 		}
-
-		printCumulative();
 	}
 	
-	public void loadClassificationFilesOnAllTargets ( ) throws IOException
+	public void loadFiles (  String fold ) throws IOException
 	{
 		// get the property value and print it out
-		featurePath = "./data/model/" ;
-		modelPath = featurePath ;
 		
-		featureFile = "test.temp" ;
-		outputFile =  "test.pred" ;
+		String testFile = featurePath + "/" + fold + "/" + featureFile + fold ;
+		String opFile = modelPath + "/" + fold + outputFile ;
 		
-		 String testFile = featurePath + "/" + featureFile ;
-		 String opFile = modelPath + "/" + outputFile ;
+		System.out.println("TEST FILE: " + testFile) ;
+		System.out.println("OUTPUT FILE FROM SVM: " + opFile) ;
 		
-	//		 System.out.println("TEST FILE: " + testFile) ;
-	//		 System.out.println("OUTPUT FILE FROM SVM: " + opFile) ;
-	//		 System.out.println(target+":");
-	
-		 BufferedReader reader1 = new BufferedReader ( new FileReader ( testFile)) ;
-		 BufferedReader reader2 = new BufferedReader ( new FileReader ( opFile)) ;
-			 
-		 List<RefTargetPair> refTargetPairList = null ;
-		 eachCategoryMap = new HashMap<Double,List<RefTargetPair>>() ;
-		 RefTargetPair pair = null ;
-			 
-		 int lineNum = 0 ;
+
+		BufferedReader reader1 = new BufferedReader ( new FileReader ( testFile)) ;
+		BufferedReader reader2 = new BufferedReader ( new FileReader ( opFile)) ;
 		
-		 while (true )
+		
+		List<RefTargetPair> refTargetPairList = null ;
+		eachCategoryMap = new HashMap<Double,List<RefTargetPair>>() ;
+		RefTargetPair pair = null ;
+
+
+		int lineNum = 0 ;
+		
+		while (true )
 		{
 			String line1 = reader1.readLine();
 			String line2 = reader2.readLine();
-				
+			
 			if ( line1 == null || line2 == null )
 			{
 				break ;
 			}
-				
-			String features1[] = line1.split("\t") ;
-	//		String snum1 = features1[0] ;
-			double reference = Double.valueOf(features1[0]).doubleValue() ;
-				
-			String features2[] = line2.split("\t") ;
-	//		String snum2 = features2[0] ;
-			double predict = Double.valueOf(features2[0]).doubleValue() ;
-				
-		/*	
-				if ( !snum1.equalsIgnoreCase(snum2))
-				{
-					System.out.println("snum are not matching - check ") ;
-					continue ;
-				}
-			*/	
-				//for p/r/f1
+			
+			double reference = Double.valueOf(line1.split("\\s")[0].trim()).doubleValue() ;
+			double target = Double.valueOf(line2.trim()).doubleValue();
+			
+			//for p/r/f1
 			refTargetPairList = eachCategoryMap.get(reference);
 			if ( null == refTargetPairList )
 			{
 				refTargetPairList = new ArrayList<RefTargetPair>();
 			}
 		
-			pair = new RefTargetPair(reference,predict);
+			pair = new RefTargetPair(reference,target);
 			refTargetPairList.add(pair);
 			eachCategoryMap.put((double)reference, refTargetPairList);
-		
+	
 			lineNum++ ;
+			
 		}
-			 
-	//		 System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
-		 reader2.close();
-		 reader1.close();
-			 
-			 //now calculate
-		List<String> ops = calculatePRF1();
-		for ( String op : ops )
-		{
-			if ( op.contains("category: 0.0"))
-			{
-				continue ;
-			}
+		
+		System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
+		
+		reader2.close();
+		reader1.close();
 
-			System.out.println(target + "\t" +lineNum + "\t" + op);
-			eachCategoryMap.clear();
-		} 
+	}
+	
+	public void loadFiles ( ) throws IOException
+	{
+		// get the property value and print it out
+		
+		String testFile = featurePath + "/" + featureFile ;
+		String opFile = modelPath + "/" + outputFile ;
+		
+		System.out.println("TEST FILE: " + testFile) ;
+		System.out.println("OUTPUT FILE FROM SVM: " + opFile) ;
 		
 
-		printCumulative();
+		BufferedReader reader1 = new BufferedReader ( new FileReader ( testFile)) ;
+		BufferedReader reader2 = new BufferedReader ( new FileReader ( opFile)) ;
+		
+		
+		List<RefTargetPair> refTargetPairList = null ;
+		eachCategoryMap = new HashMap<Double,List<RefTargetPair>>() ;
+		RefTargetPair pair = null ;
+
+
+		int lineNum = 0 ;
+		
+		while (true )
+		{
+			String line1 = reader1.readLine();
+			String line2 = reader2.readLine();
+			
+			if ( line1 == null || line2 == null )
+			{
+				break ;
+			}
+			
+			double reference = Double.valueOf(line1.split("\\s")[0].trim()).doubleValue() ;
+			double target = Double.valueOf(line2.trim()).doubleValue();
+			
+			//for p/r/f1
+			refTargetPairList = eachCategoryMap.get(reference);
+			if ( null == refTargetPairList )
+			{
+				refTargetPairList = new ArrayList<RefTargetPair>();
+			}
+		
+			pair = new RefTargetPair(reference,target);
+			refTargetPairList.add(pair);
+			eachCategoryMap.put((double)reference, refTargetPairList);
+	
+			lineNum++ ;
+			
+		}
+		
+		System.out.println("NUMBER OF DATA INSTANCES: " + lineNum) ;
+		
+		reader2.close();
+		reader1.close();
+
 	}
+
 	
 
 	public void activate ( String configFile) throws IOException
@@ -784,7 +527,22 @@ public class PRF1Measure {
 		outputPath = prop.getProperty("outputPath");
 		outputFile = prop.getProperty("outputFile");
 		modelFile = prop.getProperty("modelFile") ;
-	
+		String training[] = null ;
+		try
+		{
+			training = prop.getProperty("trainingWeeks").split(",") ;
+		}
+		catch (NullPointerException e )
+		{
+			//probably this config file do not have training/testing for weekly experiment
+			//so return from here 
+			input.close();
+			return ;
+		}
+		trainingWeeks = new ArrayList<String>(Arrays.asList(training));
+		
+		String testing[] = prop.getProperty("testingWeeks").split(",") ;
+		testingWeeks = new ArrayList<String>(Arrays.asList(testing));
 
 		input.close() ;
 	}
@@ -794,41 +552,84 @@ public class PRF1Measure {
 		
 		String configFile = args[1] ;
 		String type = args[2];
-		
+	//	type = "wsd" ;
+	//	type = "single" ;
 		PRF1Measure prf1CalcObj = new PRF1Measure();
-		
 		prf1CalcObj.activate(configFile);
 		if ( type.equalsIgnoreCase("multiple"))
 		{
-	//		prf1CalcObj.loadMultipleOutputFiles() ;
-			prf1CalcObj.loadClassificationFilesOnAllTargets();
-
+			prf1CalcObj.loadWeeklyMultipleOutputFiles() ;
 		}
-		if ( type.equalsIgnoreCase("single"))
+		else if ( type.equalsIgnoreCase("single"))
 		{
-			prf1CalcObj.loadTargets() ;
+			
 			prf1CalcObj.loadFiles();	
-		/*	
 			List<String> ops = prf1CalcObj.calculatePRF1();
 			for ( String op : ops )
 			{
 				if ( op.contains("category: 0.0"))
 				{
-					continue ;
+				//	continue ;
 				}
 
 				System.out.println(op);
 			}
-		*/	
 		}
+		else if ( type.equalsIgnoreCase("context"))
+		{
+			String folds[] = {"one", "two", "three", "four", "five" } ;
+			
+			for ( String fold : folds )
+			{
+				prf1CalcObj.loadFiles(fold);	
+				List<String> ops = prf1CalcObj.calculatePRF1();
+				for ( String op : ops )
+				{
+					if ( op.contains("category: 0.0"))
+					{
+				//		continue ;
+					}
 	
+					System.out.println(op);
+				}
+			}
+		}
+
+		else if ( type.equalsIgnoreCase("wsd"))
+		{
+			List<String> targets = prf1CalcObj.loadTargets();
+		//	String[] targets = {"yeah"};
+			for ( String target : targets )
+			{
+		//		if ( target.equalsIgnoreCase("mature") || target.equalsIgnoreCase("shocked"))
+		//		{
+		//			continue ;
+			//	}
+				prf1CalcObj.loadWSDFiles(target);	
+				List<String> ops = prf1CalcObj.calculatePRF1(target);
+				for ( String op : ops )
+				{
+				//	if ( op.contains("category: 0.0") || op.contains("NON_SARCASM"))
+				//	{
+				//		continue ;
+				//	}
+					if( op.contains("NON_SARCASM"))
+					{
+						continue ;
+					}
+					System.out.println(op);
+				}
+			}
+		}
 	}
 
-	public void setPRParameters(
-			Map<Double, List<RefTargetPair>> eachCategoryMap) 
+	private List<String> loadTargets() throws IOException 
 	{
 		// TODO Auto-generated method stub
-	 this.eachCategoryMap = eachCategoryMap ;
+		String path = "./data/config/" ;
+		String file = "topnames.txt" ;
+		return Files.readAllLines(Paths.get(path + "/" + file),
+				StandardCharsets.UTF_8);
 	}
 	
 
